@@ -111,6 +111,7 @@ gem sources -a http://ruby.taobao.org/
 
 apt-get -y install git-core bzr gcc bison gawk libc6-dev 
 apt-get -y install python-software-properties make mercurial
+apt-get -y install mongodb
 
 # install go from hg
 hg clone -u release https://go.googlecode.com/hg/ go
