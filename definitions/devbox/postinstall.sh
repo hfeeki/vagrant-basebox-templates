@@ -1,5 +1,91 @@
 # postinstall.sh created from Mitchell's official lucid32/64 baseboxes
 
+# Install Ruby from source in /opt so that users of Vagrant
+# can install their own Rubies using packages or however.
+function install_ruby_from_src {
+	wget http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p286.tar.gz
+	tar xvzf ruby-1.9.3-p286.tar.gz
+	cd ruby-1.9.3-p286
+	./configure --prefix=/opt/ruby
+	make
+	make install
+	cd ..
+	rm -rf ruby-1.9.3-p286
+	rm ruby-1.9.3-p286.tar.gz
+}
+
+# Install RubyGems 1.8.24
+function install_rubygems_from_src {
+	wget http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
+	tar xzf rubygems-1.8.24.tgz
+	cd rubygems-1.8.24
+	/opt/ruby/bin/ruby setup.rb
+	cd ..
+	rm -rf rubygems-1.8.24
+	rm rubygems-1.8.24.tgz
+}
+
+# Installing chef & Puppet
+function install_chef_puppet {
+	/opt/ruby/bin/gem install chef --no-ri --no-rdoc
+	/opt/ruby/bin/gem install puppet --no-ri --no-rdoc
+}
+
+# Installing vagrant keys
+function install_vagrant_keys {
+	mkdir /home/vagrant/.ssh
+	chmod 700 /home/vagrant/.ssh
+	cd /home/vagrant/.ssh
+	wget --no-check-certificate 'https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub' -O authorized_keys
+	chmod 600 /home/vagrant/.ssh/authorized_keys
+	chown -R vagrant /home/vagrant/.ssh
+}
+
+function change_gem_source {
+	gem sources --remove https://rubygems.org/
+	gem sources -a http://ruby.taobao.org/
+}
+
+function install_dependices {
+	apt-get -y install git-core bzr gcc bison gawk libc6-dev 
+	apt-get -y install python-software-properties make mercurial
+}
+
+# install go from hg
+function install_go_from_src {
+	cd /home/vagrant
+	hg clone -u release https://go.googlecode.com/hg/ go
+	cd go/src
+	./all.bash
+
+	echo "export GOROOT=/home/vagrant/go" >> /home/vagrant/.bashrc
+	echo "export GOARCH=amd64" >> /home/vagrant/.bashrc
+	echo "export GOOS=linux" >> /home/vagrant/.bashrc
+	echo "export GOBIN=$GOROOT/bin" >> /home/vagrant/.bashrc
+	echo "export GOPATH=/home/vagrant/.go" >> /home/vagrant/.bashrc
+	echo "export PATH=$PATH:$GOBIN:$GOPATH/bin" >> /home/vagrant/.bashrc
+}
+
+# install golang from ppa
+function install_go_from_ppa {
+	apt-add-repository ppa:gophers/go
+	apt-get update 
+	apt-get install golang	
+}
+
+# install nodejs
+function install_nodejs {
+	cd /home/vagrant 
+	apt-get install -y build-essential openssl libssl-dev 
+	git clone https://github.com/joyent/node.git
+	cd node
+	#git checkout v0.9.9
+	./configure
+	make
+	make install
+}
+#####################################################################
+
 date > /etc/vagrant_box_build_time
 
 # Apt-install various things necessary for Ruby, guest additions,
@@ -37,30 +123,11 @@ adduser --system --group --home /var/lib/puppet puppet
 # Install NFS client
 apt-get -y install nfs-common
 
-# Install Ruby from source in /opt so that users of Vagrant
-# can install their own Rubies using packages or however.
-wget http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p286.tar.gz
-tar xvzf ruby-1.9.3-p286.tar.gz
-cd ruby-1.9.3-p286
-./configure --prefix=/opt/ruby
-make
-make install
-cd ..
-rm -rf ruby-1.9.3-p286
-rm ruby-1.9.3-p286.tar.gz
+install_ruby_from_src
 
-# Install RubyGems 1.8.24
-wget http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
-tar xzf rubygems-1.8.24.tgz
-cd rubygems-1.8.24
-/opt/ruby/bin/ruby setup.rb
-cd ..
-rm -rf rubygems-1.8.24
-rm rubygems-1.8.24.tgz
+install_rubygems_from_src
 
-# Installing chef & Puppet
-/opt/ruby/bin/gem install chef --no-ri --no-rdoc
-/opt/ruby/bin/gem install puppet --no-ri --no-rdoc
+install_chef_puppet
 
 # Add /opt/ruby/bin to the global path as the last resort so
 # Ruby, RubyGems, and Chef/Puppet are visible
@@ -75,13 +142,18 @@ if `tty -s`; then
 fi
 EOH
 
-# Installing vagrant keys
-mkdir /home/vagrant/.ssh
-chmod 700 /home/vagrant/.ssh
-cd /home/vagrant/.ssh
-wget --no-check-certificate 'https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub' -O authorized_keys
-chmod 600 /home/vagrant/.ssh/authorized_keys
-chown -R vagrant /home/vagrant/.ssh
+
+install_vagrant_keys
+
+change_gem_source
+
+install_dependices
+
+install_go_from_src
+
+install_nodejs
+
+###############################################################
 
 # Remove items used for building, since they aren't needed anymore
 apt-get -y remove linux-headers-$(uname -r) build-essential
@@ -106,42 +178,5 @@ rm /lib/udev/rules.d/75-persistent-net-generator.rules
 echo "Adding a 2 sec delay to the interface up, to make the dhclient happy"
 echo "pre-up sleep 2" >> /etc/network/interfaces
 
-gem sources --remove https://rubygems.org/
-gem sources -a http://ruby.taobao.org/
-
-apt-get -y install git-core bzr gcc bison gawk libc6-dev 
-apt-get -y install python-software-properties make mercurial
-apt-get -y install mongodb
-
-# install go from hg
-cd /home/vagrant
-hg clone -u release https://go.googlecode.com/hg/ go
-cd go/src
-./all.bash
-
-echo "export GOROOT=/home/vagrant/go" >> /home/vagrant/.bashrc
-echo "export GOARCH=amd64" >> /home/vagrant/.bashrc
-echo "export GOOS=linux" >> /home/vagrant/.bashrc
-echo "export GOBIN=$GOROOT/bin" >> /home/vagrant/.bashrc
-echo "export GOPATH=/home/vagrant/.go" >> /home/vagrant/.bashrc
-echo "export PATH=$PATH:$GOBIN:$GOPATH/bin" >> /home/vagrant/.bashrc
-
-# install golang from ppa
-#sudo apt-add-repository ppa:gophers/go
-#sudo apt-get update 
-#sudo apt-get install golang
-
-##############################################################
-
-# install nodejs
-cd /home/vagrant 
-sudo apt-get install -y build-essential openssl libssl-dev 
-git clone https://github.com/joyent/node.git
-cd node
-#git checkout v0.9.9
-./configure
-make
-make install
-###############################################################
 
 exit
