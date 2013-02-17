@@ -114,6 +114,7 @@ apt-get -y install python-software-properties make mercurial
 apt-get -y install mongodb
 
 # install go from hg
+cd /home/vagrant
 hg clone -u release https://go.googlecode.com/hg/ go
 cd go/src
 ./all.bash

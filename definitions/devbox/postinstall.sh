@@ -118,7 +118,6 @@ cd /home/vagrant
 hg clone -u release https://go.googlecode.com/hg/ go
 cd go/src
 ./all.bash
-cd -
 
 echo "export GOROOT=/home/vagrant/go" >> /home/vagrant/.bashrc
 echo "export GOARCH=amd64" >> /home/vagrant/.bashrc
