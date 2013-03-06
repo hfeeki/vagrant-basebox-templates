@@ -126,6 +126,15 @@ function install_go_from_ppa {
 	apt-get install golang	
 	echo "successed to install glang from ppa."
 }
+# install gvm 
+function install_go_version_manager {
+        echo "start to install gvm"
+	bash < <(curl -s https://raw.github.com/moovweb/gvm/master/binscripts/gvm-installer)
+	source $HOME/.gvm/bin/gvm
+	#gvm install go1.0.3
+	gvm use system --default
+ 	echo "succeed to install gvm"
+}
 # install nodejs
 function install_nodejs {
 	echo "start to install nodejs from src ..."
